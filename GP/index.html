@@ -4,13 +4,63 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Explorer</title>
-    <link rel="stylesheet" href="styles.css">
+    <style>
+        #file-explorer {
+            width: 400px;
+            margin: 0 auto;
+        }
+
+        #file-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        #file-list li {
+            margin: 5px 0;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
     <div id="file-explorer">
-        <button id="back-button">返回上一级</button>
+        <button id="select-folder">选择文件夹</button>
         <ul id="file-list"></ul>
     </div>
-    <script src="script.js"></script>
+
+    <script>
+        const selectFolderButton = document.getElementById('select-folder');
+        const fileList = document.getElementById('file-list');
+
+        selectFolderButton.addEventListener('click', async () => {
+            // 请求用户选择目录
+            const directoryHandle = await window.showDirectoryPicker();
+            await listFiles(directoryHandle);
+        });
+
+        async function listFiles(directoryHandle, parentElement = fileList) {
+            parentElement.innerHTML = '';
+
+            for await (const entry of directoryHandle.values()) {
+                const li = document.createElement('li');
+                li.textContent = entry.name;
+                parentElement.appendChild(li);
+
+                if (entry.kind === 'directory') {
+                    li.style.fontWeight = 'bold';
+                    li.addEventListener('click', async () => {
+                        const subList = document.createElement('ul');
+                        li.appendChild(subList);
+                        await listFiles(entry, subList);
+                    });
+                } else {
+                    li.addEventListener('click', async () => {
+                        const file = await entry.getFile();
+                        const url = URL.createObjectURL(file);
+                        window.open(url);
+                    });
+                }
+            }
+        }
+    </script>
 </body>
 </html>
